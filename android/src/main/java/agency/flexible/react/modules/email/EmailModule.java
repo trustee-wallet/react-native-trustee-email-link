@@ -7,11 +7,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.util.Base64;
-import android.util.Base64OutputStream;
 import android.util.Log;
 import android.app.Activity;
 
@@ -76,21 +71,10 @@ public class EmailModule extends ReactContextBaseJavaModule {
             for (ResolveInfo ri : resInfo) {
                 String label = ri.loadLabel(pm).toString();
                 String packageName = ri.activityInfo.packageName;
-                Drawable iconDrawable = ri.loadIcon(pm);
-
-                String iconString = "";
-                if (iconDrawable != null) {
-                    Bitmap bitmap = ((BitmapDrawable) iconDrawable).getBitmap();
-                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-                    byte[] byteArray = byteArrayOutputStream.toByteArray();
-                    iconString = Base64.encodeToString(byteArray, Base64.DEFAULT);
-                }
 
                 WritableMap emailApp = Arguments.createMap();
                 emailApp.putString("label", label);
                 emailApp.putString("packageName", packageName);
-                emailApp.putString("icon", iconString);
 
                 emailApps.pushMap(emailApp);
             }
