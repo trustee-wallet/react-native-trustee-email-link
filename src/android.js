@@ -9,8 +9,50 @@ import { EmailException } from "./email-exception";
  *     title: string,
  *     message: string,
  *     cancelLabel: string,
+ *     packageName: string
  * }} options
  */
+
+export async function openApp(options = {}) {
+  if (!("Email" in NativeModules)) {
+    throw new EmailException(
+      "NativeModules.Email does not exist. Check if you installed the Android dependencies correctly."
+    );
+  }
+
+  try {
+    await NativeModules.Email.openApp(
+      options?.packageName,
+      (successMessage) => {
+        console.log(successMessage);
+      },
+      (errorMessage) => {
+        console.log(errorMessage);
+      }
+    );
+  } catch (error) {
+    if (error.code === "NoEmailAppsAvailable") {
+      throw new EmailException("No email apps available");
+    }
+  }
+}
+
+export async function getApps() {
+  if (!("Email" in NativeModules)) {
+    throw new EmailException(
+      "NativeModules.Email does not exist. Check if you installed the Android dependencies correctly."
+    );
+  }
+
+  try {
+    return await NativeModules.Email.getEmailApps();
+  } catch (error) {
+    if (error.code === "NoEmailAppsAvailable") {
+      throw new EmailException("No email apps available");
+    }
+  }
+}
+
 export async function openInbox(options = {}) {
   // We can't pre-choose, since we use native intents
   if (!("Email" in NativeModules)) {

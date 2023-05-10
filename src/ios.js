@@ -135,15 +135,15 @@ const uriParams = {
  * }} options
  */
 function getUrlParams(app, options) {
-  const appParms = uriParams[app];
-  if (!appParms) {
+  const appParams = uriParams[app];
+  if (!appParams) {
     return "";
   }
 
-  const path = app === "apple-mail" ? options.to || "" : appParms.path;
-  const urlParams = Object.keys(appParms).reduce((params, currentParam) => {
+  const path = app === "apple-mail" ? options.to || "" : appParams.path;
+  const urlParams = Object.keys(appParams).reduce((params, currentParam) => {
     if (options[currentParam]) {
-      params.push(`${appParms[currentParam]}=${options[currentParam]}`);
+      params.push(`${appParams[currentParam]}=${options[currentParam]}`);
     }
     return params;
   }, []);
@@ -169,6 +169,21 @@ export function isAppInstalled(app) {
       })
       .catch(() => resolve(false));
   });
+}
+
+export async function getApps() {
+  let availableApps = [];
+  for (let app in prefixes) {
+    let isInstalled = await isAppInstalled(app);
+    if (isInstalled) {
+      availableApps.push({
+        label: titles[app],
+        link: prefixes[app],
+      });
+    }
+  }
+
+  return availableApps;
 }
 
 /**

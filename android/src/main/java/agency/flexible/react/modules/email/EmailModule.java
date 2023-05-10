@@ -1,31 +1,106 @@
 package agency.flexible.react.modules.email;
 
 import android.content.Intent;
+import android.content.Context;
 import android.content.pm.LabeledIntent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
+
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.util.Base64;
+import android.util.Base64OutputStream;
+import android.util.Log;
+import android.app.Activity;
+
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.WritableArray;
+import com.facebook.react.bridge.WritableMap;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 
+import com.facebook.react.bridge.Callback;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.io.ByteArrayOutputStream;
 
 import javax.annotation.Nullable;
 
 public class EmailModule extends ReactContextBaseJavaModule {
 
+    private ReactApplicationContext reactContext;
+
     public EmailModule(ReactApplicationContext reactContext) {
         super(reactContext);
+        this.reactContext = reactContext;
     }
 
     @Override
     public String getName() {
         return "Email";
     }
+
+    @ReactMethod
+    public void openApp(String packageName, Callback errorCallback, Callback successCallback) {
+        Activity currentActivity = reactContext.getCurrentActivity();
+        if (currentActivity != null) {
+            PackageManager packageManager = currentActivity.getPackageManager();
+            Intent intent = packageManager.getLaunchIntentForPackage(packageName);
+            if (intent != null) {
+                intent.addCategory(Intent.CATEGORY_LAUNCHER);
+                currentActivity.startActivity(intent);
+                successCallback.invoke("App opened successfully!");
+            } else {
+                errorCallback.invoke("Error: App not found!");
+            }
+        } else {
+            errorCallback.invoke("Error: Current activity not found!");
+        }
+    }
+
+    @ReactMethod
+    public void getEmailApps(final Promise promise) {
+        Intent emailIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("mailto:"));
+        PackageManager pm = getCurrentActivity().getPackageManager();
+
+        List<ResolveInfo> resInfo = pm.queryIntentActivities(emailIntent, 0);
+        if (!resInfo.isEmpty()) {
+            WritableArray emailApps = Arguments.createArray();
+
+            for (ResolveInfo ri : resInfo) {
+                String label = ri.loadLabel(pm).toString();
+                String packageName = ri.activityInfo.packageName;
+                Drawable iconDrawable = ri.loadIcon(pm);
+
+                String iconString = "";
+                if (iconDrawable != null) {
+                    Bitmap bitmap = ((BitmapDrawable) iconDrawable).getBitmap();
+                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+                    byte[] byteArray = byteArrayOutputStream.toByteArray();
+                    iconString = Base64.encodeToString(byteArray, Base64.DEFAULT);
+                }
+
+                WritableMap emailApp = Arguments.createMap();
+                emailApp.putString("label", label);
+                emailApp.putString("packageName", packageName);
+                emailApp.putString("icon", iconString);
+
+                emailApps.pushMap(emailApp);
+            }
+
+            promise.resolve(emailApps);
+        } else {
+            promise.reject("NO_EMAIL_APPS", "No email apps found.");
+        }
+    }
+
 
     @ReactMethod
     public void open(final String title, final boolean newTask, final Promise promise) {
